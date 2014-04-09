@@ -1,1 +1,1 @@
-This is the code accompanying my blog post: [Generating Mazes with Inductive Graphs](http://jelv.is/blog/Generating Mazes with Inductive Graphs).
+This is the code accompanying my blog post: [Generating Mazes with Inductive Graphs](http://jelv.is/blog/Generating-Mazes-with-Inductive-Graphs).

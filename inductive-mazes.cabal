@@ -4,8 +4,8 @@
 name:                inductive-mazes
 version:             0.1.0.0
 synopsis:            A simple library for generating mazes using inductive graphs from fgl (the "functional graph library").
-description:         This is the code that accompanies my blog post about generating mazes using inductive graphs. You can find it at <http://jelv.is/blog/Generating Mazes with Inductive Graphs/>.
-homepage:            http://jelv.is/blog/Generating%20Mazes%20with%20Inductive%20Graphs/
+description:         This is the code that accompanies my blog post about generating mazes using inductive graphs. You can find it at <http://jelv.is/blog/Generating-Mazes-with-Inductive-Graphs/>.
+homepage:            http://jelv.is/blog/Generating-Mazes-with-Inductive-Graphs/
 license:             BSD3
 license-file:        LICENSE
 author:              Tikhon Jelvis <tikhon@jelv.is>
