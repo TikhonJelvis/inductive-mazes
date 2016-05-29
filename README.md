@@ -54,7 +54,12 @@ If using `stack`, run:
 
     stack ghci
 
+Once in the `ghci`, run:
+
     *Draw> genPng defaults "my-maze.png" 40 40
     ^D – exiting cabal repl
+
+After having returned to the terminal, view the new maze file with your
+favourite `.png` views:
 
     eog my-maze.png -- or whatever your png viewer is
