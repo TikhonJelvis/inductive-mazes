@@ -54,7 +54,7 @@ If using `stack`, run:
 
     stack ghci
 
-Once in the `ghci`, run:
+Once in the `ghci` instance, run:
 
     *Draw> genPng defaults "my-maze.png" 40 40
     ^D – exiting cabal repl
