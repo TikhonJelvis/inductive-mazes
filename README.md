@@ -10,7 +10,7 @@ On Ubuntu, you can install it with `apt-get`:
 
     sudo apt-get install libcairo2-dev
 
-### Installation
+### Installation with Cabal
 
 Get the project:
 
@@ -28,11 +28,31 @@ The project should probably be built inside of a sandbox.
     cabal install gtk2hs-buildtools
     cabal install inductive-mazes.cabal
 
+### Installation with Stack
+
+Building under [Stack](http://docs.haskellstack.org/en/stable/README/) is quite
+simple and obviates the need for building within a cabal sandbox.
+
+Get the project:
+
+    git clone https://github.com/TikhonJelvis/inductive-mazes.git
+    cd inductive-mazes
+
+From within the project directory, run:
+
+    stack init
+
+Stack will then install the packages locally for the project.
+
 ### Interactive Use
 
 Run the following inside the `inductive-mazes` directory:
 
     cabal repl
+
+If using `stack`, run:
+
+    stack ghci
 
     *Draw> genPng defaults "my-maze.png" 40 40
     ^D – exiting cabal repl
