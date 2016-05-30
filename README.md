@@ -1,6 +1,6 @@
 This is the code accompanying my blog post: [Generating Mazes with Inductive Graphs](http://jelv.is/blog/Generating-Mazes-with-Inductive-Graphs).
 
-Build instructions courtesy of [Mike Xie](https://github.com/Mike-Xie), tested on Ubuntu 14.10:
+Build instructions courtesy of [Mike Xie](https://github.com/Mike-Xie) and [Rianna Morgan](https://github.com/R-Morgan)
 
 ### Libcairo
 
