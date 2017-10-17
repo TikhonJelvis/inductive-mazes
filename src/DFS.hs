@@ -11,6 +11,8 @@ module DFS where
 import           Control.Monad        (liftM)
 import           Control.Monad.Random (getRandomR, MonadRandom)
 
+import           Data.Array
+
 import qualified Data.Graph.Inductive as Graph
 import           Data.Graph.Inductive (Gr, (&), match, matchAny)
 
@@ -68,7 +70,7 @@ edfsR start (match start -> (Just ctx, graph)) =
   where go [] _                                = return []
         go _ g | Graph.isEmpty g               = return []
         go ((p, n, l):ns) (match n -> (Just c, g)) = do
-          edges <- shuffle $ lNeighbors' c
+          edges <- shuffle2 $ lNeighbors' c
           liftM ((p, n, l) :) $ go (edges ++ ns) g
         go (_:ns) g                            = go ns g
 
@@ -84,3 +86,14 @@ shuffle ls = do
           i <- getRandomR (0, length ls - 1)
           let (as, x:bs) = splitAt i ls
           return (x, as ++ bs)
+
+-- | Durstenfeld's modification of the Fisher–Yates shuffle runs in O(n) time!
+-- We convert ls into an Array arr first for fast indexing.
+shuffle2 :: MonadRandom m => [t] -> m [t]
+shuffle2 [] = return []
+shuffle2 ls = liftM elems $ doSwaps (length ls) arr
+  where arr = listArray (1, length ls) ls
+        doSwaps 1 arr = return arr
+        doSwaps len arr = do
+          i <- getRandomR(1,len)
+          doSwaps (len - 1) $ (arr //) [(len,arr!i),(i,arr!len)]
