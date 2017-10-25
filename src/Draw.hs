@@ -23,7 +23,7 @@ import           Maze
 
 -- | Settings that control what the resulting picture looks
 --   like. Sizes are in pixels.
-data Config = Config { step   :: Int -- ^ the size of each cell 
+data Config = Config { step   :: Int -- ^ the size of each cell
                      , wall   :: Int -- ^ how wide the wall lines are
                      , width  :: Int -- ^ how wide the canvas is
                      , height :: Int -- ^ how high the canvas is

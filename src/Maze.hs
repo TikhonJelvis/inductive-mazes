@@ -1,17 +1,17 @@
 -- | Code for generating a maze from a randomized graph traversal. A
 --   maze is just represented by a list of the walls to draw.
--- 
+--
 --   This code was written for my blog post on generating mazes:
 --   <http://jelv.is/blog/Generating Mazes with Inductive Graphs/>
 module Maze where
 
 import           DFS
-
-import           Control.Monad        (liftM)
-import           Control.Monad.Random (MonadRandom)
+import           Control.Applicative ((<$>))
+import           Control.Monad        (liftM, sequence_, forM_, mapM)
+import           Control.Monad.Random
 
 import qualified Data.Graph.Inductive as Graph
-import           Data.Graph.Inductive (Gr)
+import           Data.Graph.Inductive (Gr, prettyPrint, labEdges, edgeLabel)
 import qualified Data.List            as List
 import           Data.List            ((\\))
 
@@ -27,8 +27,13 @@ instance Show Wall where
   show (Wall (x, y) Horizontal) = show (x, y) ++ " —"
   show (Wall (x, y) Vertical)   = show (x, y) ++ " |"
 
--- | We start with a graph representing a graph with nodes as cells
---   and edges as walls.
+data WeightedWall = WeightedWall (Int, Int, Int) Orientation deriving (Eq, Show)
+
+-- instance Show WeightedWall where
+--   show (WeightedWall (x, y, w) Horizontal) = show (x, y, w) ++ " —"
+--   show (WeightedWall (x, y, w) Vertical)   = show (x, y, w) ++ " |"
+-- -- | We start with a graph representing a graph with nodes as cells
+-- --   and edges as walls.
 type Grid = Gr () Wall
 
 -- | Generate a graph representing an n × m grid.
@@ -45,11 +50,28 @@ grid width height = Graph.mkGraph nodes edges
                  n - n' == width ]
         wall n = let (y, x) = n `divMod` width in Wall (x, y)
 
+weightedGrid :: MonadRandom m => Int -> Int -> Gr () (m WeightedWall)
+weightedGrid width height = Graph.mkGraph nodes edges
+  where nodes = [(node, ()) | node <- [0..width * height - 1]]
+        edges = [(n, n', ww n width Vertical) |
+                 (n, _) <- nodes,
+                 (n', _) <- nodes,
+                 n - n' == 1 && n `mod` width /= 0 ]
+             ++ [(n, n', ww n width Horizontal) |
+                 (n,_) <- nodes,
+                 (n',_) <- nodes,
+                 n - n' == width ]
+        ww n width orientation = do
+         w <- getRandomR(1, 100) -- random constant
+         let (y, x) = n `divMod` width in
+           return (WeightedWall (x, y, w) orientation)
+
+
 -- | Generates the random edge traversal of an n × m grid.
 generate :: MonadRandom m => Int -> Int -> m [Graph.LEdge Wall]
 generate width height =
-  liftM (Graph.labEdges graph \\) $ edfsR (ghead graph) graph
-  where graph = grid width height                    
+  (Graph.labEdges graph \\) <$> edfsR (ghead graph) graph
+  where graph = grid width height
 
 -- | Look up an edge label in the given graph. I don't know why this
 --   isn't in the standard fgl API!
@@ -60,4 +82,12 @@ edgeLabel graph (n, n') = label
 
 -- | Generates a random n × m maze.
 maze :: MonadRandom m => Int -> Int -> m [Wall]
-maze width height = liftM (map (\(_, _, wall) -> wall)) $ generate width height
+maze width height = (\(_, _, wall) -> wall) <$> generate width height
+
+pp :: WeightedWall -> String
+pp (WeightedWall (a, b, c) _) = show a ++ " " ++ show b ++ " " ++ show c
+
+main :: IO ()
+main = do
+  ww <- mapM Data.Graph.Inductive.edgeLabel $ labEdges (weightedGrid 10 10)
+  forM_ (map pp ww) putStrLn

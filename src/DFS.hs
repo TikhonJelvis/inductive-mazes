@@ -3,11 +3,11 @@
 -- | A few versions of depth-first search for inductive graphs. A much
 --   more comprehensive implementation comes with fgl directly as
 --   @Data.Graph.Inductive.Query.DFS@.
--- 
+--
 --   This code was written for my blog post on generating mazes:
 --   <http://jelv.is/blog/Generating Mazes with Inductive Graphs/>
 module DFS where
-
+import Control.Applicative ((<$>))
 import           Control.Monad        (liftM)
 import           Control.Monad.Random (getRandomR, MonadRandom)
 
@@ -28,7 +28,7 @@ mapNodes f (matchAny -> ((in', node, label, out), g)) =
   (in', node, f label, out) & mapNodes f g
 
 -- | The simplest depth-first search which returns a list of the nodes
---   visited, in order. 
+--   visited, in order.
 dfs :: Graph.Node -> Gr n e -> [Graph.Node]
 dfs start graph = go [start] graph
   where go [] _                           = []
@@ -66,12 +66,12 @@ normalize = map swap
 --   random.
 edfsR :: MonadRandom m => Graph.Node -> Gr n e -> m [Graph.LEdge e]
 edfsR start (match start -> (Just ctx, graph)) =
-  liftM normalize $ go (lNeighbors' ctx) graph
+  normalize <$> go (lNeighbors' ctx) graph
   where go [] _                                = return []
         go _ g | Graph.isEmpty g               = return []
         go ((p, n, l):ns) (match n -> (Just c, g)) = do
           edges <- shuffle2 $ lNeighbors' c
-          liftM ((p, n, l) :) $ go (edges ++ ns) g
+          ((p, n, l) :) <$> go (edges ++ ns) g
         go (_:ns) g                            = go ns g
 
 -- | A naïve but unbiased list shuffle. Warning: it runs in O(n²)
@@ -80,7 +80,7 @@ shuffle :: MonadRandom m => [a] -> m [a]
 shuffle [] = return []
 shuffle ls = do
   (x, xs) <- choose ls
-  liftM (x :) $ shuffle xs
+  (x :) <$> shuffle xs
   where choose [] = error "Cannot choose from emtpy list!"
         choose ls = do
           i <- getRandomR (0, length ls - 1)
@@ -91,7 +91,7 @@ shuffle ls = do
 -- We convert ls into an Array arr first for fast indexing.
 shuffle2 :: MonadRandom m => [t] -> m [t]
 shuffle2 [] = return []
-shuffle2 ls = liftM elems $ doSwaps (length ls) arr
+shuffle2 ls = elems <$> doSwaps (length ls) arr
   where arr = listArray (1, length ls) ls
         doSwaps 1 arr = return arr
         doSwaps len arr = do
