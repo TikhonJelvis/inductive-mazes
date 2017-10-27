@@ -7,14 +7,21 @@
 --   This code was written for my blog post on generating mazes:
 --   <http://jelv.is/blog/Generating Mazes with Inductive Graphs/>
 module DFS where
-import Control.Applicative ((<$>))
-import           Control.Monad        (liftM)
-import           Control.Monad.Random (getRandomR, MonadRandom)
 
+import           Control.Applicative  ((<$>))
+import           Control.Monad        (liftM2, liftM3)
+import           Control.Monad.Random (MonadRandom, getRandomR)
+import           Control.Monad.ST     (ST, runST)
 import           Data.Array
 
+import           Data.Graph.Inductive (Gr, labEdges, match, matchAny, nodes,
+                                       order, (&))
 import qualified Data.Graph.Inductive as Graph
-import           Data.Graph.Inductive (Gr, (&), match, matchAny)
+import           Data.List            (sortBy)
+import qualified Data.Map.Strict      as Map
+import           Data.Maybe           (fromJust)
+import           Debug.Trace          (trace)
+import           UnionFind
 
 -- | Return an arbitrary node from the graph. Fails on empty graphs.
 ghead :: Gr a b -> Graph.Node
@@ -74,6 +81,28 @@ edfsR start (match start -> (Just ctx, graph)) =
           ((p, n, l) :) <$> go (edges ++ ns) g
         go (_:ns) g                            = go ns g
 
+sequenceLEdge :: Functor f => Graph.LEdge (f a) -> f (Graph.LEdge a)
+sequenceLEdge (l, r, act) = fmap (\v -> (l, r, v)) act
+
+
+-- | MST-Kruskal alg.
+kruskal :: (Ord e) => Map.Map Graph.Node Int  -> Int -> [Graph.LEdge e] -> [Graph.LEdge e]
+kruskal symtab og l = runST $ uf >>= (\x -> kruskal' symtab x l [])
+  where uf = newUnionFind og
+
+kruskal' :: (Ord e) => Map.Map Graph.Node Int -> UnionFind s -> [Graph.LEdge e] -> [Graph.LEdge e] -> ST s [Graph.LEdge e]
+kruskal' symtab uf [] res = return res
+kruskal' symtab uf ((n1,n2,w):es) res = do
+  found <- find uf i1 i2
+  if not found then do
+    UnionFind.unite uf i1 i2
+    kruskal' symtab uf es ((n1,n2,w) : res)
+    else
+      kruskal' symtab uf es res
+  where i1 = fromJust $ Map.lookup n1 symtab
+        i2 = fromJust $ Map.lookup n2 symtab
+
+
 -- | A naïve but unbiased list shuffle. Warning: it runs in O(n²)
 --   time!
 shuffle :: MonadRandom m => [a] -> m [a]
@@ -81,7 +110,7 @@ shuffle [] = return []
 shuffle ls = do
   (x, xs) <- choose ls
   (x :) <$> shuffle xs
-  where choose [] = error "Cannot choose from emtpy list!"
+  where choose [] = error "Cannot choose from empty list!"
         choose ls = do
           i <- getRandomR (0, length ls - 1)
           let (as, x:bs) = splitAt i ls

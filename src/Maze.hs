@@ -5,15 +5,20 @@
 --   <http://jelv.is/blog/Generating Mazes with Inductive Graphs/>
 module Maze where
 
-import           DFS
-import           Control.Applicative ((<$>))
-import           Control.Monad        (liftM, sequence_, forM_, mapM)
+import           Control.Applicative  ((<$>))
+import           Control.Monad        (forM_, liftM, mapM, sequence_)
 import           Control.Monad.Random
+import           DFS
 
+import           Data.Graph.Inductive (Gr, edgeLabel, labEdges, nodes, order,
+                                       prettyPrint)
 import qualified Data.Graph.Inductive as Graph
-import           Data.Graph.Inductive (Gr, prettyPrint, labEdges, edgeLabel)
+import           Data.List            (sortBy, (\\))
 import qualified Data.List            as List
-import           Data.List            ((\\))
+import qualified Data.Map.Strict      as Map
+import           Data.Set             (Set, empty, member, singleton, union)
+import           Debug.Trace          (trace)
+import           UnionFind
 
 -- | Since we're starting with a grid, we only have two possible
 --   orientations for walls.
@@ -27,11 +32,14 @@ instance Show Wall where
   show (Wall (x, y) Horizontal) = show (x, y) ++ " —"
   show (Wall (x, y) Vertical)   = show (x, y) ++ " |"
 
-data WeightedWall = WeightedWall (Int, Int, Int) Orientation deriving (Eq, Show)
+data WeightedWall = WeightedWall (Int, Int, Int) Orientation deriving (Eq)
 
--- instance Show WeightedWall where
---   show (WeightedWall (x, y, w) Horizontal) = show (x, y, w) ++ " —"
---   show (WeightedWall (x, y, w) Vertical)   = show (x, y, w) ++ " |"
+instance Ord WeightedWall where
+  compare (WeightedWall (_, _, a) _) (WeightedWall (_, _, b) _) = compare a b
+
+instance Show WeightedWall where
+  show (WeightedWall (x, y, w) Horizontal) = show (x, y, w) ++ " —"
+  show (WeightedWall (x, y, w) Vertical)   = show (x, y, w) ++ " |"
 -- -- | We start with a graph representing a graph with nodes as cells
 -- --   and edges as walls.
 type Grid = Gr () Wall
@@ -69,9 +77,20 @@ weightedGrid width height = Graph.mkGraph nodes edges
 
 -- | Generates the random edge traversal of an n × m grid.
 generate :: MonadRandom m => Int -> Int -> m [Graph.LEdge Wall]
-generate width height =
-  (Graph.labEdges graph \\) <$> edfsR (ghead graph) graph
+generate width height = do
+  x <- (Graph.labEdges graph \\) <$> edfsR (ghead graph) graph
+  trace (show x) (return x)
   where graph = grid width height
+
+-- | Generates the MST edge traversal of an n × m grid.
+generateMST :: MonadRandom m => Int -> Int -> m [Graph.LEdge WeightedWall]
+generateMST width height = do
+  x <- mapM sequenceLEdge (Graph.labEdges graph)
+  let y = kruskal mapl (order graph) (sortBy sf x)
+  trace (show (length x) ++ "\n" ++ show(x) ++ "\n" ++  show(length y)++ show(y) ++ "\n" ++ show(length (x\\y)) ++ "\n" ++ show(x\\y) ) return (x \\ y)
+    where graph = weightedGrid width height
+          sf (_,_,c) (_,_,f) = compare c f
+          mapl = Map.fromList $ zip (nodes graph) [0..(order graph -1)]
 
 -- | Look up an edge label in the given graph. I don't know why this
 --   isn't in the standard fgl API!
@@ -82,12 +101,16 @@ edgeLabel graph (n, n') = label
 
 -- | Generates a random n × m maze.
 maze :: MonadRandom m => Int -> Int -> m [Wall]
-maze width height = (\(_, _, wall) -> wall) <$> generate width height
+maze width height = map Data.Graph.Inductive.edgeLabel <$> generate width height
+
+-- | Generates a random n × m maze using a MST algorithm.
+mazeMST :: MonadRandom m => Int -> Int -> m [WeightedWall]
+mazeMST width height = map Data.Graph.Inductive.edgeLabel <$> generateMST width height
 
 pp :: WeightedWall -> String
 pp (WeightedWall (a, b, c) _) = show a ++ " " ++ show b ++ " " ++ show c
 
-main :: IO ()
-main = do
+test :: IO ()
+test = do
   ww <- mapM Data.Graph.Inductive.edgeLabel $ labEdges (weightedGrid 10 10)
   forM_ (map pp ww) putStrLn
