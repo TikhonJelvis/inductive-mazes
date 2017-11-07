@@ -20,6 +20,8 @@ import qualified Data.Graph.Inductive as Graph
 import           Data.List            (sortBy)
 import qualified Data.Map.Strict      as Map
 import           Data.Maybe           (fromJust)
+import           Data.Vector          (Vector, fromList, modify, toList)
+import           Data.Vector.Mutable  (read, write)
 import           Debug.Trace          (trace)
 import           UnionFind
 
@@ -84,27 +86,30 @@ edfsR start (match start -> (Just ctx, graph)) =
 sequenceLEdge :: Functor f => Graph.LEdge (f a) -> f (Graph.LEdge a)
 sequenceLEdge (l, r, act) = fmap (\v -> (l, r, v)) act
 
-
--- | MST-Kruskal alg.
+-- | MST-Kruskal alg. Finds a safe edge to add to a growing forest by finding,
+--   of all the edges that connect any two trees in the forest,
+--   an edge (u,v) of least weight.
 kruskal :: (Ord e) => Map.Map Graph.Node Int  -> Int -> [Graph.LEdge e] -> [Graph.LEdge e]
 kruskal symtab og l = runST $ uf >>= (\x -> kruskal' symtab x l [])
   where uf = newUnionFind og
 
+-- | Encapsulates operations on mutable arrays that maintain disjoint sets.
+--   Each node starts off in its own set. Each set contains the vertices in
+--   one tree of the  current forest. We use symbol table to map from node
+--   numbers to the indices maintained inside the disjoint set data structure.
 kruskal' :: (Ord e) => Map.Map Graph.Node Int -> UnionFind s -> [Graph.LEdge e] -> [Graph.LEdge e] -> ST s [Graph.LEdge e]
-kruskal' symtab uf [] res = return res
-kruskal' symtab uf ((n1,n2,w):es) res = do
-  found <- find uf i1 i2
-  if not found then do
+kruskal' symtab uf [] result = return result
+kruskal' symtab uf ((n1,n2,w):es) result = do
+  sameSet <- find uf i1 i2
+  if not sameSet then do
     UnionFind.unite uf i1 i2
-    kruskal' symtab uf es ((n1,n2,w) : res)
+    kruskal' symtab uf es ((n1,n2,w) : result)
     else
-      kruskal' symtab uf es res
+      kruskal' symtab uf es result
   where i1 = fromJust $ Map.lookup n1 symtab
         i2 = fromJust $ Map.lookup n2 symtab
 
-
--- | A naïve but unbiased list shuffle. Warning: it runs in O(n²)
---   time!
+-- | A naïve but unbiased list shuffle. Warning: it runs in O(n²) time!
 shuffle :: MonadRandom m => [a] -> m [a]
 shuffle [] = return []
 shuffle ls = do
@@ -116,13 +121,20 @@ shuffle ls = do
           let (as, x:bs) = splitAt i ls
           return (x, as ++ bs)
 
+doSwaps :: MonadRandom m => Int -> Vector a -> m (Vector a)
+doSwaps 1 vec = return vec
+doSwaps len vec =
+  let swap a b v = do tempA <- Data.Vector.Mutable.read v a
+                      tempB <- Data.Vector.Mutable.read v b
+                      Data.Vector.Mutable.write v a tempB
+                      Data.Vector.Mutable.write v b tempA
+  in do
+    i <- getRandomR(1,len)
+    doSwaps (len - 1) $ modify (swap len i) vec
+
+
 -- | Durstenfeld's modification of the Fisher–Yates shuffle runs in O(n) time!
 -- We convert ls into an Array arr first for fast indexing.
 shuffle2 :: MonadRandom m => [t] -> m [t]
 shuffle2 [] = return []
-shuffle2 ls = elems <$> doSwaps (length ls) arr
-  where arr = listArray (1, length ls) ls
-        doSwaps 1 arr = return arr
-        doSwaps len arr = do
-          i <- getRandomR(1,len)
-          doSwaps (len - 1) $ (arr //) [(len,arr!i),(i,arr!len)]
+shuffle2 ls = fmap toList (doSwaps (length ls) (fromList ls))

@@ -25,6 +25,6 @@ library
                        cairo >=0.12 && <0.14,
                        MonadRandom >=0.1 && <0.5,
                        array,
-                       containers
-  hs-source-dirs:      src
+                       containers,
+                       vector
   default-language:    Haskell2010
