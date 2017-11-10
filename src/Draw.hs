@@ -1,7 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes       #-}
 {-# LANGUAGE RecordWildCards  #-}
-{-# LANGUAGE ViewPatterns     #-}
 -- | A module for actually drawing mazes built from grids. It uses
 --   Cairo, which is a canvas-like drawing library based on GtK.
 module Draw where
@@ -13,17 +12,17 @@ import           Data.Function            (on)
 import qualified Data.List                as List
 import           Data.Ord                 (comparing)
 
-import qualified Data.Graph.Inductive     as Graph
 import           Data.Graph.Inductive     (DynGraph, Graph, match, (&))
+import qualified Data.Graph.Inductive     as Graph
 
-import qualified Graphics.Rendering.Cairo as Cairo
 import           Graphics.Rendering.Cairo (Render)
+import qualified Graphics.Rendering.Cairo as Cairo
 
 import           Maze
 
 -- | Settings that control what the resulting picture looks
 --   like. Sizes are in pixels.
-data Config = Config { step   :: Int -- ^ the size of each cell 
+data Config = Config { step   :: Int -- ^ the size of each cell
                      , wall   :: Int -- ^ how wide the wall lines are
                      , width  :: Int -- ^ how wide the canvas is
                      , height :: Int -- ^ how high the canvas is
@@ -69,3 +68,12 @@ genPng :: Config -> FilePath -> Int -> Int -> IO ()
 genPng config file width height = do
   maze <- maze width height
   mazePng config file maze
+
+-- | Generate a maze image with a maze of the given dimensions.
+genPng2 :: Config -> FilePath -> Int -> Int -> IO ()
+genPng2 config file width height = do
+  maze <- map toWall <$> mazeMST width height
+  mazePng config file maze
+
+toWall :: WeightedWall -> Wall
+toWall (WeightedWall (x, y, _) o) = Wall (x,y) o
