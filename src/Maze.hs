@@ -17,7 +17,6 @@ import           Data.List            (sortBy, (\\))
 import qualified Data.List            as List
 import qualified Data.Map.Strict      as Map
 import           Data.Set             (Set, empty, member, singleton, union)
-import           Debug.Trace          (trace)
 import           UnionFind
 
 -- | Since we're starting with a grid, we only have two possible
@@ -79,7 +78,7 @@ weightedGrid width height = Graph.mkGraph nodes edges
 generate :: MonadRandom m => Int -> Int -> m [Graph.LEdge Wall]
 generate width height = do
   x <- (Graph.labEdges graph \\) <$> edfsR (ghead graph) graph
-  trace (show x) (return x)
+  return x
   where graph = grid width height
 
 -- | Generates the MST edge traversal of an n × m grid.
@@ -87,7 +86,7 @@ generateMST :: MonadRandom m => Int -> Int -> m [Graph.LEdge WeightedWall]
 generateMST width height = do
   x <- mapM sequenceLEdge (Graph.labEdges graph)
   let y = kruskal mapl (order graph) (sortBy sf x)
-  trace (show (length x) ++ "\n" ++ show(x) ++ "\n" ++  show(length y)++ show(y) ++ "\n" ++ show(length (x\\y)) ++ "\n" ++ show(x\\y) ) return (x \\ y)
+  return (x \\ y)
     where graph = weightedGrid width height
           sf (_,_,c) (_,_,f) = compare c f
           mapl = Map.fromList $ zip (nodes graph) [0..(order graph -1)]

@@ -79,7 +79,7 @@ edfsR start (match start -> (Just ctx, graph)) =
   where go [] _                                = return []
         go _ g | Graph.isEmpty g               = return []
         go ((p, n, l):ns) (match n -> (Just c, g)) = do
-          edges <- shuffle2 $ lNeighbors' c
+          edges <- shuffle $ lNeighbors' c
           ((p, n, l) :) <$> go (edges ++ ns) g
         go (_:ns) g                            = go ns g
 
