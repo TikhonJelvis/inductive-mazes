@@ -7,6 +7,8 @@ dist
 cabal-dev
 .cabal-sandbox
 cabal.sandbox.config
+.ghc.environment.x86_64-darwin-8.4.3
+dist-newstyle
 
 # Stack
 .*.sw*

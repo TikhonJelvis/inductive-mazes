@@ -1,26 +1,25 @@
-{ nixpkgs ? import <nixpkgs> {}, compiler ? "default" }:
-
 let
+  overlay = self: super: {
+    haskellPackages = super.haskellPackages.override {
+      overrides = hself: hsuper: {
+        inductive-mazes = hself.callCabal2nix "inductive-mazes" ./. { };
 
-  inherit (nixpkgs) pkgs;
-
-  f = { mkDerivation, base, cairo, fgl, MonadRandom, stdenv }:
-      mkDerivation {
-        pname = "inductive-mazes";
-        version = "0.1.0.0";
-        src = ./.;
-        libraryHaskellDepends = [ base cairo fgl MonadRandom ];
-        homepage = "http://jelv.is/blog/Generating-Mazes-with-Inductive-Graphs/";
-        description = "A simple library for generating mazes using inductive graphs from fgl (the \"functional graph library\")";
-        license = stdenv.lib.licenses.bsd3;
+        pure-zlib = self.haskell.lib.dontCheck hsuper.pure-zlib;
       };
+    };
+  };
 
-  haskellPackages = if compiler == "default"
-                       then pkgs.haskellPackages
-                       else pkgs.haskell.packages.${compiler};
+  nixpkgs = (import <nixpkgs> { }).fetchFromGitHub {
+    owner  = "NixOS";
+    repo   = "nixpkgs";
+    rev    = "9fa6a261fb237f68071b361a9913ed1742d5e082";
+    sha256 = "11733y8xfbisvp8jzpcpjwz70883qfnlzdxv7yl3k2accin88a9z";
+  };
 
-  drv = haskellPackages.callPackage f {};
+  pkgs = import nixpkgs {
+    overlays = [ overlay ];
+  };
 
+  buildDepends = with pkgs.haskellPackages; [ cabal-install stylish-haskell ];
 in
-
-  if pkgs.lib.inNixShell then drv.env else drv
+  pkgs.haskell.lib.shellAware (pkgs.haskell.lib.addBuildDepends pkgs.haskellPackages.inductive-mazes buildDepends)
